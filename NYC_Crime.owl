@@ -1,0 +1,237 @@
+@prefix :     <http://example.org/nycrime#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix schema: <https://schema.org/> .
+
+#################################################################
+# Ontology
+#################################################################
+
+<http://example.org/nycrime>
+    a owl:Ontology ;
+    rdfs:label "NY Crime Ontology (Simple)" ;
+    rdfs:comment "Simplified ontology for representing NYPD Crime Data as a Knowledge Graph, aligned with Schema.org." .
+
+#################################################################
+# Classes 
+#################################################################
+
+# CrimeEvent is a more specific kind of schema:Event
+:CrimeEvent a owl:Class ;
+    rdfs:label "CrimeEvent" ;
+    rdfs:subClassOf schema:Event .
+
+# Person mapped to schema.org Person
+:Person a owl:Class ;
+    rdfs:label "Person" ;
+    rdfs:subClassOf schema:Person .
+
+# Location mapped to schema:Place
+:Location a owl:Class ;
+    rdfs:label "Location" ;
+    rdfs:subClassOf schema:Place .
+
+# Weapon does not have a direct Schema.org type → map to Thing
+:Weapon a owl:Class ;
+    rdfs:label "Weapon" ;
+    rdfs:subClassOf schema:Thing .
+
+# Time mapped to schema:Thing (closest)
+:Time a owl:Class ;
+    rdfs:label "Time" ;
+    rdfs:subClassOf schema:Thing .
+
+#################################################################
+# Subclasses
+#################################################################
+
+:ShootingEvent a owl:Class ;
+    rdfs:subClassOf :CrimeEvent ;
+    rdfs:label "ShootingEvent" .
+
+:OtherCrimeEvent a owl:Class ;
+    rdfs:subClassOf :CrimeEvent ;
+    rdfs:label "OtherCrimeEvent" .
+
+:Victim a owl:Class ;
+    rdfs:subClassOf :Person ;
+    rdfs:label "Victim" .
+
+:Suspect a owl:Class ;
+    rdfs:subClassOf :Person ;
+    rdfs:label "Suspect" .
+
+:CrimeLocation a owl:Class ;
+    rdfs:subClassOf :Location ;
+    rdfs:label "CrimeLocation" .
+
+:Borough a owl:Class ;
+    rdfs:subClassOf :Location ;
+    rdfs:label "Borough" .
+
+:Precinct a owl:Class ;
+    rdfs:subClassOf :Location ;
+    rdfs:label "Precinct" .
+
+:Firearm a owl:Class ;
+    rdfs:subClassOf :Weapon ;
+    rdfs:label "Firearm" .
+
+:Knife a owl:Class ;
+    rdfs:subClassOf :Weapon ;
+    rdfs:label "Knife" .
+
+:OtherWeapon a owl:Class ;
+    rdfs:subClassOf :Weapon ;
+    rdfs:label "OtherWeapon" .
+
+:TimeOfDay a owl:Class ;
+    rdfs:subClassOf :Time ;
+    rdfs:label "TimeOfDay" .
+
+:YearPeriod a owl:Class ;
+    rdfs:subClassOf :Time ;
+    rdfs:label "YearPeriod" .
+
+#################################################################
+# Object Properties
+#################################################################
+
+:hasVictim a owl:ObjectProperty ;
+    rdfs:label "hasVictim" ;
+    rdfs:domain :CrimeEvent ;
+    rdfs:range :Victim .
+
+:hasSuspect a owl:ObjectProperty ;
+    rdfs:label "hasSuspect" ;
+    rdfs:domain :CrimeEvent ;
+    rdfs:range :Suspect .
+
+:occurredAt a owl:ObjectProperty ;
+    rdfs:label "occurredAt" ;
+    rdfs:domain :CrimeEvent ;
+    rdfs:range :CrimeLocation .
+
+:usedWeapon a owl:ObjectProperty ;
+    rdfs:label "usedWeapon" ;
+    rdfs:domain :CrimeEvent ;
+    rdfs:range :Weapon .
+
+:hasTime a owl:ObjectProperty ;
+    rdfs:label "hasTime" ;
+    rdfs:domain :CrimeEvent ;
+    rdfs:range :Time .
+
+:inBorough a owl:ObjectProperty ;
+    rdfs:label "inBorough" ;
+    rdfs:domain :CrimeLocation ;
+    rdfs:range :Borough .
+
+:inPrecinct a owl:ObjectProperty ;
+    rdfs:label "inPrecinct" ;
+    rdfs:domain :CrimeLocation ;
+    rdfs:range :Precinct .
+
+#################################################################
+# Datatype Properties
+#################################################################
+
+:incidentId a owl:DatatypeProperty ;
+    rdfs:label "incidentId" ;
+    rdfs:domain :CrimeEvent ;
+    rdfs:range xsd:string .
+
+:crimeType a owl:DatatypeProperty ;
+    rdfs:label "crimeType" ;
+    rdfs:domain :CrimeEvent ;
+    rdfs:range xsd:string .
+
+:occurrenceDate a owl:DatatypeProperty ;
+    rdfs:label "occurrenceDate" ;
+    rdfs:domain :CrimeEvent ;
+    rdfs:range xsd:dateTime .
+
+:age a owl:DatatypeProperty ;
+    rdfs:label "age" ;
+    rdfs:domain :Person ;
+    rdfs:range xsd:integer .
+
+:sex a owl:DatatypeProperty ;
+    rdfs:label "sex" ;
+    rdfs:domain :Person ;
+    rdfs:range xsd:string .
+
+:race a owl:DatatypeProperty ;
+    rdfs:label "race" ;
+    rdfs:domain :Person ;
+    rdfs:range xsd:string .
+
+:latitude a owl:DatatypeProperty ;
+    rdfs:label "latitude" ;
+    rdfs:domain :CrimeLocation ;
+    rdfs:range xsd:decimal .
+
+:longitude a owl:DatatypeProperty ;
+    rdfs:label "longitude" ;
+    rdfs:domain :CrimeLocation ;
+    rdfs:range xsd:decimal .
+
+:name a owl:DatatypeProperty ;
+    rdfs:label "name" ;
+    rdfs:domain :Location ;
+    rdfs:range xsd:string .
+
+:weaponDesc a owl:DatatypeProperty ;
+    rdfs:label "weaponDesc" ;
+    rdfs:domain :Weapon ;
+    rdfs:range xsd:string .
+
+:timeLabel a owl:DatatypeProperty ;
+    rdfs:label "timeLabel" ;
+    rdfs:domain :Time ;
+    rdfs:range xsd:string .
+
+#################################################################
+# Individuals
+#################################################################
+
+:Bronx a :Borough ;
+    :name "Bronx" .
+
+:Precinct_44 a :Precinct ;
+    :name "44th Precinct" .
+
+:CrimeLocation_1 a :CrimeLocation ;
+    :name "E 170th St & Grand Concourse" ;
+    :latitude 40.8402 ;
+    :longitude -73.9154 ;
+    :inBorough :Bronx ;
+    :inPrecinct :Precinct_44 .
+
+:Weapon_1 a :Firearm ;
+    :weaponDesc "9mm Handgun" .
+
+:Time_1 a :TimeOfDay ;
+    :timeLabel "Night" .
+
+:Victim_1 a :Victim ;
+    :age 24 ;
+    :sex "M" ;
+    :race "Hispanic" .
+
+:Suspect_1 a :Suspect ;
+    :age 28 ;
+    :sex "M" ;
+    :race "Black" .
+
+:CrimeEvent_1 a :ShootingEvent ;
+    :incidentId "2025-BX-000123" ;
+    :crimeType "Shooting" ;
+    :occurrenceDate "2025-10-15T22:45:00"^^xsd:dateTime ;
+    :hasVictim :Victim_1 ;
+    :hasSuspect :Suspect_1 ;
+    :occurredAt :CrimeLocation_1 ;
+    :usedWeapon :Weapon_1 ;
+    :hasTime :Time_1 .

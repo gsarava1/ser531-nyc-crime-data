@@ -1,0 +1,11 @@
+PREFIX ny: <http://asu.edu/semantics/crime#>
+
+SELECT ?yearMonth (COUNT(?e) AS ?count)
+WHERE {
+  ?e a ny:CrimeEvent ;
+     ny:occurrenceDate ?dt .
+
+  BIND(SUBSTR(STR(?dt), 1, 7) AS ?yearMonth)
+}
+GROUP BY ?yearMonth
+ORDER BY ?yearMonth

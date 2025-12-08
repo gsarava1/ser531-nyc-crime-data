@@ -1,0 +1,10 @@
+PREFIX ny: <http://example.org/nycrime#>
+
+SELECT ?race (COUNT(?v) AS ?count)
+WHERE {
+  ?e a ny:CrimeEvent ;
+     ny:hasVictim ?v .
+  ?v ny:race ?race .
+}
+GROUP BY ?race
+ORDER BY DESC(?count)

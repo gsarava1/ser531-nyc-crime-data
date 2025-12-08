@@ -1,0 +1,11 @@
+PREFIX ny: <http://example.org/nycrime#>
+
+SELECT ?borough (COUNT(?e) AS ?count)
+WHERE {
+  ?e a ny:CrimeEvent ;
+     ny:occurredAt ?loc .
+  ?loc ny:inBorough ?b .
+  ?b ny:name ?borough .
+}
+GROUP BY ?borough
+ORDER BY DESC(?count)

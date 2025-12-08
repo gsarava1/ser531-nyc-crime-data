@@ -1,0 +1,17 @@
+PREFIX ny: <http://example.org/nycrime#>
+
+SELECT ?id ?date ?lat ?lon ?borough
+WHERE {
+  ?e a ny:CrimeEvent ;
+     ny:incidentId ?id ;
+     ny:occurrenceDate ?date ;
+     ny:occurredAt ?loc .
+  ?loc ny:latitude ?lat ;
+       ny:longitude ?lon .
+  OPTIONAL {
+    ?loc ny:inBorough ?b .
+    ?b ny:name ?borough .
+  }
+}
+ORDER BY DESC(?date)
+LIMIT 500

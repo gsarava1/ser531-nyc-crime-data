@@ -1,0 +1,9 @@
+PREFIX ny: <http://example.org/nycrime#>
+
+SELECT ?type (COUNT(?e) AS ?count)
+WHERE {
+  ?e a ny:CrimeEvent ;
+     ny:crimeType ?type .
+}
+GROUP BY ?type
+ORDER BY DESC(?count)

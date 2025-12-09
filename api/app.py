@@ -116,7 +116,7 @@ def events():
 
 
 # -----------------------------------
-# 7. Top Crime Types per Borough
+# 6. Top Crime Types per Borough
 # -----------------------------------
 @app.get("/api/top_crimes")
 def top_crimes():

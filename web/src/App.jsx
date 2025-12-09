@@ -1,167 +1,209 @@
 import React, { useEffect, useState } from "react";
-import BoroughBarChart from "./components/BoroughBarChart.jsx";
-import TrendLineChart from "./components/TrendLineChart.jsx";
-import VictimRaceChart from "./components/VictimRaceChart.jsx";
-import EventList from "./components/EventList.jsx";
 
-const API_BASE = "http://localhost:8000";
+import BoroughCrimeTotals from "./components/BoroughCrimeTotals.jsx";
+import CrimeTrendByYear from "./components/CrimeTrendByYear.jsx";
+import CrimeTypeDistribution from "./components/CrimeTypePieChart.jsx";
+import CrimeByHour from "./components/CrimeByHour.jsx";
+import TopCrimeTypesByBorough from "./components/TopCrimeTypesByBorough.jsx";
+import CrimeMatrixHeatmap from "./components/BoroughCrimeMatrixHeatmap.jsx";
+import CrimeLeafletMap from "./components/CrimeLeafletMap.jsx";
 
-const App = () => {
-  const [boroughData, setBoroughData] = useState([]);
+const API = "http://localhost:8000";
+
+/* Utility: Safe wrapper to prevent crashes */
+const safe = (fn, fallback = []) => {
+  try {
+    return fn();
+  } catch {
+    return fallback;
+  }
+};
+
+export default function App() {
+  // ---------------------- STATE ----------------------
+  const [boroughTotals, setBoroughTotals] = useState([]);
+  const [trendYear, setTrendYear] = useState("2015");
   const [trendData, setTrendData] = useState([]);
-  const [victimRaceData, setVictimRaceData] = useState([]);
+  const [crimeTypeDist, setCrimeTypeDist] = useState([]);
+  const [hourlyData, setHourlyData] = useState([]);
   const [selectedBorough, setSelectedBorough] = useState("");
-  const [events, setEvents] = useState([]);
-  const [loadingEvents, setLoadingEvents] = useState(false);
+  const [topCrimeTypes, setTopCrimeTypes] = useState([]);
+  const [matrixData, setMatrixData] = useState([]);
+  const [mapEvents, setMapEvents] = useState([]);
 
-  const mapBoroughResponse = (json) =>
-    json.results.bindings.map((b) => ({
-      borough: b.borough.value,
-      count: Number(b.count.value)
-    }));
+  // ---------------------- FETCH HELPERS ----------------------
+  async function fetchJSON(url) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(res.statusText);
+      const json = await res.json();
+      return json;
+    } catch (err) {
+      console.error("Fetch error:", url, err);
+      return null;
+    }
+  }
 
-  const mapTrendResponse = (json) =>
-    json.results.bindings.map((b) => ({
-      yearMonth: b.yearMonth.value,
-      count: Number(b.count.value)
-    }));
+  // ---------------------- LOAD DATA ----------------------
 
-  const mapVictimRaceResponse = (json) =>
-    json.results.bindings.map((b) => ({
-      race: b.race.value,
-      count: Number(b.count.value)
-    }));
-
-  const mapEventsResponse = (json) =>
-    json.results.bindings.map((b) => ({
-      id: b.id.value,
-      date: b.date.value,
-      lat: Number(b.lat.value),
-      lon: Number(b.lon.value),
-      borough: b.borough ? b.borough.value : null
-    }));
-
+  // Borough totals
   useEffect(() => {
-    fetch(`${API_BASE}/api/boroughs`)
-      .then((r) => r.json())
-      .then((j) => setBoroughData(mapBoroughResponse(j)))
-      .catch((e) => console.error("Error loading boroughs", e));
-
-    fetch(`${API_BASE}/api/trend`)
-      .then((r) => r.json())
-      .then((j) => setTrendData(mapTrendResponse(j)))
-      .catch((e) => console.error("Error loading trend", e));
-
-    fetch(`${API_BASE}/api/victim_race`)
-      .then((r) => r.json())
-      .then((j) => setVictimRaceData(mapVictimRaceResponse(j)))
-      .catch((e) => console.error("Error loading victim race", e));
+    (async () => {
+      const json = await fetchJSON(`${API}/api/boroughs`);
+      const mapped = safe(
+        () =>
+          json.results.bindings.map((b) => ({
+            borough: b.borough.value,
+            count: Number(b.count.value),
+          })),
+        []
+      );
+      setBoroughTotals(mapped);
+    })();
   }, []);
 
+  // Trend by year
   useEffect(() => {
-    const loadEvents = async () => {
-      setLoadingEvents(true);
-      try {
-        const url = selectedBorough
-          ? `${API_BASE}/api/events?borough=${encodeURIComponent(
-              selectedBorough
-            )}`
-          : `${API_BASE}/api/events`;
+    (async () => {
+      const json = await fetchJSON(`${API}/api/trend_by_year?year=${trendYear}`);
 
-        const res = await fetch(url);
-        const json = await res.json();
-        setEvents(mapEventsResponse(json));
-      } catch (err) {
-        console.error("Error loading events", err);
-        setEvents([]);
-      } finally {
-        setLoadingEvents(false);
-      }
-    };
+      const raw = safe(() => json.results.bindings, []);
 
-    loadEvents();
+      const monthMap = {};
+
+      raw.forEach((b) => {
+        if (!b.month || !b.count) return;  // skip 無效 row
+
+        const month = Number(b.month.value);
+        const count = Number(b.count.value);
+
+        if (!monthMap[month]) monthMap[month] = 0;
+        monthMap[month] += count;
+      });
+
+      const finalData = Object.keys(monthMap).map((m) => ({
+        month: Number(m),
+        count: monthMap[m],
+      }));
+
+      finalData.sort((a, b) => a.month - b.month);
+
+      setTrendData(finalData);
+    })();
+  }, [trendYear]);
+
+
+  // Crime type distribution
+  useEffect(() => {
+    (async () => {
+      const json = await fetchJSON(`${API}/api/crime_type`);
+
+      const mapped = safe(
+        () =>
+          json.results.bindings.map((b) => ({
+            type: b.crimeType.value,
+            count: Number(b.count.value),
+          })),
+        []
+      );
+
+      setCrimeTypeDist(mapped);
+    })();
+  }, []);
+
+
+  // Hourly crime
+  useEffect(() => {
+    (async () => {
+      const json = await fetchJSON(`${API}/api/crime_by_hour`);
+      const mapped = safe(
+        () =>
+        json.results.bindings
+        .filter(b => b.hour)  // 忽略沒有 hour 的
+        .map(b => ({
+          hour: Number(b.hour.value),
+          count: Number(b.count.value),
+      })),
+  []
+);
+      setHourlyData(mapped);
+    })();
+  }, []);
+
+  // Top crime types by borough
+  useEffect(() => {
+    (async () => {
+      const boroughParam = selectedBorough ? `?borough=${selectedBorough}` : "";
+      const json = await fetchJSON(`${API}/api/top_crimes${boroughParam}`);
+      const mapped = safe(
+        () =>
+          json.results.bindings.map((b) => ({
+            type: b.type.value,
+            count: Number(b.count.value),
+          })),
+        []
+      );
+      setTopCrimeTypes(mapped);
+    })();
   }, [selectedBorough]);
 
-  const boroughOptions = [...new Set(boroughData.map((b) => b.borough))];
 
+  // ---------------------- RENDER UI ----------------------
   return (
-    <div
-      style={{
-        fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
-        padding: "1.5rem",
-        maxWidth: 1200,
-        margin: "0 auto"
-      }}
-    >
-      <h1 style={{ marginBottom: "0.25rem" }}>
-        NY Crime Knowledge Graph Dashboard
-      </h1>
-      <p style={{ marginTop: 0, color: "#555", fontSize: "0.9rem" }}>
-        Backed by GraphDB + SPARQL (NYPD Shooting Incident Data).
+    <div style={{ fontFamily: "system-ui", padding: "1.5rem", maxWidth: 1400, margin: "0 auto" }}>
+      <h1 style={{ marginBottom: 4 }}>NYC Crime Analytics Dashboard</h1>
+      <p style={{ color: "#666", marginTop: 0, marginBottom: "1rem" }}>
+        Powered by GraphDB + SPARQL + React
       </p>
 
-      
+      {/* ---------- GRID LAYOUT ---------- */}
       <div
         style={{
           display: "grid",
           gridTemplateColumns: "1fr 1fr",
           gap: "1.5rem",
-          marginTop: "1rem"
         }}
       >
+        {/* Borough totals */}
         <div>
-          <BoroughBarChart data={boroughData} />
+          <BoroughCrimeTotals data={boroughTotals} />
         </div>
+
+        {/* Trend by year */}
         <div>
-          <TrendLineChart data={trendData} />
-        </div>
-      </div>
-
-      
-      <div style={{ marginTop: "2rem" }}>
-        <VictimRaceChart data={victimRaceData} />
-      </div>
-
-      
-      <div style={{ marginTop: "2rem" }}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "0.5rem",
-            marginBottom: "0.5rem"
-          }}
-        >
-          <h2 style={{ margin: 0, fontSize: "1.05rem" }}>Event Details</h2>
-          <span style={{ fontSize: "0.85rem", color: "#555" }}>
-            (Latest 500 events)
-          </span>
+          <CrimeTrendByYear
+            data={trendData}
+            year={trendYear}
+            onChangeYear={setTrendYear}
+          />
         </div>
 
-        <label style={{ fontSize: "0.85rem", marginRight: "0.5rem" }}>
-          Filter by Borough:
-        </label>
-        <select
-          value={selectedBorough}
-          onChange={(e) => setSelectedBorough(e.target.value)}
-          style={{ padding: "0.25rem 0.5rem", fontSize: "0.85rem" }}
-        >
-          <option value="">All</option>
-          {boroughOptions.map((b) => (
-            <option key={b} value={b}>
-              {b}
-            </option>
-          ))}
-        </select>
+        {/* Pie chart */}
+        <div>
+          <CrimeTypeDistribution data={crimeTypeDist} />
+        </div>
 
-        {loadingEvents ? (
-          <p style={{ marginTop: "0.5rem" }}>Loading events...</p>
-        ) : (
-          <EventList events={events} />
-        )}
+        {/* Hourly */}
+        <div>
+          <CrimeByHour data={hourlyData} />
+        </div>
+
+        {/* Top crimes */}
+        <div>
+          <TopCrimeTypesByBorough
+            data={topCrimeTypes}
+            borough={selectedBorough}
+            onChangeBorough={setSelectedBorough}
+          />
+        </div>
+
+        {/* Heatmap */}
+        <div>
+          <CrimeMatrixHeatmap data={matrixData} />
+        </div>
+
+
       </div>
     </div>
   );
-};
-
-export default App;
+}

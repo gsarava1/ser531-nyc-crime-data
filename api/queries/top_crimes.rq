@@ -1,0 +1,15 @@
+PREFIX ny: <http://asu.edu/semantics/crime#>
+
+SELECT ?type (COUNT(?e) AS ?count)
+WHERE {
+  ?e a ny:CrimeEvent ;
+     ny:crimeType ?type ;
+     ny:occurredAt ?loc .
+
+  ?loc ny:inBorough ?borough .
+
+  ##BOROUGH_FILTER##
+}
+GROUP BY ?type
+ORDER BY DESC(?count)
+LIMIT 10

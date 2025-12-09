@@ -1,167 +1,318 @@
-import React, { useEffect, useState } from "react";
-import BoroughBarChart from "./components/BoroughBarChart.jsx";
-import TrendLineChart from "./components/TrendLineChart.jsx";
-import VictimRaceChart from "./components/VictimRaceChart.jsx";
-import EventList from "./components/EventList.jsx";
+import { useState, useEffect } from "react";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Popup,
+  GeoJSON,
+  useMap,
+} from "react-leaflet";
+import MarkerClusterGroup from "@changey/react-leaflet-markercluster";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 
-const API_BASE = "http://localhost:8000";
+import "leaflet.heat";
+import "leaflet.markercluster";
 
-const App = () => {
-  const [boroughData, setBoroughData] = useState([]);
-  const [trendData, setTrendData] = useState([]);
-  const [victimRaceData, setVictimRaceData] = useState([]);
-  const [selectedBorough, setSelectedBorough] = useState("");
-  const [events, setEvents] = useState([]);
-  const [loadingEvents, setLoadingEvents] = useState(false);
+const API = "http://localhost:8000";
 
-  const mapBoroughResponse = (json) =>
-    json.results.bindings.map((b) => ({
-      borough: b.borough.value,
-      count: Number(b.count.value)
-    }));
+export default function App() {
+  const [points, setPoints] = useState([]);
+  const [heatPoints, setHeatPoints] = useState([]);
 
-  const mapTrendResponse = (json) =>
-    json.results.bindings.map((b) => ({
-      yearMonth: b.yearMonth.value,
-      count: Number(b.count.value)
-    }));
+  const [boroughShapes, setBoroughShapes] = useState(null);
+  const [boroughStats, setBoroughStats] = useState({}); // fix
 
-  const mapVictimRaceResponse = (json) =>
-    json.results.bindings.map((b) => ({
-      race: b.race.value,
-      count: Number(b.count.value)
-    }));
+  const [year, setYear] = useState("ALL");
+  const [month, setMonth] = useState("ALL");
+  const [crimeType, setCrimeType] = useState("ALL");
+  const [limit, setLimit] = useState("1000");
 
-  const mapEventsResponse = (json) =>
-    json.results.bindings.map((b) => ({
-      id: b.id.value,
-      date: b.date.value,
-      lat: Number(b.lat.value),
-      lon: Number(b.lon.value),
-      borough: b.borough ? b.borough.value : null
-    }));
+  // layer toggles
+  const [showHeat, setShowHeat] = useState(true);
+  const [showCluster, setShowCluster] = useState(true);
+  const [showChoropleth, setShowChoropleth] = useState(false);
 
+  // Load borough shapes
   useEffect(() => {
-    fetch(`${API_BASE}/api/boroughs`)
-      .then((r) => r.json())
-      .then((j) => setBoroughData(mapBoroughResponse(j)))
-      .catch((e) => console.error("Error loading boroughs", e));
-
-    fetch(`${API_BASE}/api/trend`)
-      .then((r) => r.json())
-      .then((j) => setTrendData(mapTrendResponse(j)))
-      .catch((e) => console.error("Error loading trend", e));
-
-    fetch(`${API_BASE}/api/victim_race`)
-      .then((r) => r.json())
-      .then((j) => setVictimRaceData(mapVictimRaceResponse(j)))
-      .catch((e) => console.error("Error loading victim race", e));
+    fetch("/boroughs.geojson")
+      .then((res) => res.json())
+      .then((data) => setBoroughShapes(data));
   }, []);
 
+  // Load events (points)
   useEffect(() => {
-    const loadEvents = async () => {
-      setLoadingEvents(true);
-      try {
-        const url = selectedBorough
-          ? `${API_BASE}/api/events?borough=${encodeURIComponent(
-              selectedBorough
-            )}`
-          : `${API_BASE}/api/events`;
+    async function load() {
+      let url = `${API}/api/events`;
+      const params = [];
 
-        const res = await fetch(url);
-        const json = await res.json();
-        setEvents(mapEventsResponse(json));
-      } catch (err) {
-        console.error("Error loading events", err);
-        setEvents([]);
-      } finally {
-        setLoadingEvents(false);
-      }
-    };
+      if (year !== "ALL") params.push(`year=${year}`);
+      if (month !== "ALL") params.push(`month=${month}`);
+      if (crimeType !== "ALL") params.push(`crime=${crimeType}`);
+      if (limit !== "1000") params.push(`limit=${limit}`);
 
-    loadEvents();
-  }, [selectedBorough]);
+      if (params.length > 0) url += "?" + params.join("&");
 
-  const boroughOptions = [...new Set(boroughData.map((b) => b.borough))];
+      const res = await fetch(url);
+      const json = await res.json();
+
+      const mapped =
+        json.results?.bindings?.map((b) => ({
+          lat: Number(b.lat.value),
+          lon: Number(b.long.value),
+          date: b.date.value,
+          crimeType: b.crimeType.value,
+        })) ?? [];
+
+      setPoints(mapped);
+      setHeatPoints(mapped.map((p) => [p.lat, p.lon, 0.6]));
+    }
+    load();
+  }, [year, month, crimeType, limit]);
+
+  // Load borough aggregated crime counts
+  useEffect(() => {
+    async function loadBoroughStats() {
+      let url = `${API}/api/borough_stats`;
+
+      const params = [];
+      if (year !== "ALL") params.push(`year=${year}`);
+      if (month !== "ALL") params.push(`month=${month}`);
+      if (crimeType !== "ALL") params.push(`crime=${crimeType}`);
+
+      if (params.length > 0) url += "?" + params.join("&");
+
+      const res = await fetch(url);
+      const json = await res.json();
+
+      const mapped = {};
+      json.results?.bindings?.forEach((b) => {
+        mapped[b.borough.value.toUpperCase()] = Number(b.count.value);
+      });
+
+      setBoroughStats(mapped);
+    }
+
+    loadBoroughStats();
+  }, [year, month, crimeType]);
 
   return (
-    <div
-      style={{
-        fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
-        padding: "1.5rem",
-        maxWidth: 1200,
-        margin: "0 auto"
-      }}
-    >
-      <h1 style={{ marginBottom: "0.25rem" }}>
-        NY Crime Knowledge Graph Dashboard
-      </h1>
-      <p style={{ marginTop: 0, color: "#555", fontSize: "0.9rem" }}>
-        Backed by GraphDB + SPARQL (NYPD Shooting Incident Data).
-      </p>
-
-      
+    <div style={{ height: "100vh", width: "100vw" }}>
+      {/* Control Panel */}
       <div
         style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: "1.5rem",
-          marginTop: "1rem"
+          position: "absolute",
+          zIndex: 1000,
+          top: 15,
+          right: 10,
+          background: "white",
+          padding: "15px",
+          borderRadius: "10px",
         }}
       >
-        <div>
-          <BoroughBarChart data={boroughData} />
-        </div>
-        <div>
-          <TrendLineChart data={trendData} />
-        </div>
-      </div>
-
-      
-      <div style={{ marginTop: "2rem" }}>
-        <VictimRaceChart data={victimRaceData} />
-      </div>
-
-      
-      <div style={{ marginTop: "2rem" }}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "0.5rem",
-            marginBottom: "0.5rem"
-          }}
-        >
-          <h2 style={{ margin: 0, fontSize: "1.05rem" }}>Event Details</h2>
-          <span style={{ fontSize: "0.85rem", color: "#555" }}>
-            (Latest 500 events)
-          </span>
-        </div>
-
-        <label style={{ fontSize: "0.85rem", marginRight: "0.5rem" }}>
-          Filter by Borough:
+        <label>
+          <input
+            type="checkbox"
+            checked={showHeat}
+            onChange={() => setShowHeat((prev) => !prev)}
+          />
+          Heatmap
         </label>
-        <select
-          value={selectedBorough}
-          onChange={(e) => setSelectedBorough(e.target.value)}
-          style={{ padding: "0.25rem 0.5rem", fontSize: "0.85rem" }}
-        >
-          <option value="">All</option>
-          {boroughOptions.map((b) => (
-            <option key={b} value={b}>
-              {b}
-            </option>
+        <br />
+
+        <label>
+          <input
+            type="checkbox"
+            checked={showCluster}
+            onChange={() => setShowCluster((prev) => !prev)}
+          />
+          Marker Clusters
+        </label>
+        <br />
+
+        <label>
+          <input
+            type="checkbox"
+            checked={showChoropleth}
+            onChange={() => setShowChoropleth((prev) => !prev)}
+          />
+          Precincts
+        </label>
+
+        <hr />
+
+        {/* Filtering */}
+        <label>Year: </label>
+        <select value={year} onChange={(e) => setYear(e.target.value)}>
+          <option value="ALL">ALL</option>
+          {[2015, 2016, 2017, 2018, 2019].map((y) => (
+            <option key={y}>{y}</option>
           ))}
         </select>
 
-        {loadingEvents ? (
-          <p style={{ marginTop: "0.5rem" }}>Loading events...</p>
-        ) : (
-          <EventList events={events} />
-        )}
+        <br />
+        <label>Month: </label>
+        <select value={month} onChange={(e) => setMonth(e.target.value)}>
+          <option value="ALL">ALL</option>
+          {[...Array(12)].map((_, i) => (
+            <option key={i + 1}>{i + 1}</option>
+          ))}
+        </select>
+
+        <br />
+        <label>Crime Type: </label>
+        <select value={crimeType} onChange={(e) => setCrimeType(e.target.value)}>
+          <option value="ALL">ALL</option>
+          <option value="ASSAULT">ASSAULT</option>
+          <option value="ROBBERY">ROBBERY</option>
+          <option value="BURGLARY">BURGLARY</option>
+          <option value="GRAND LARCENY">GRAND LARCENY</option>
+        </select>
+
+        <br />
+        <label>Limit:</label>
+        <select value={limit} onChange={(e) => setLimit(e.target.value)}>
+          <option value="100">100</option>
+          <option value="500">500</option>
+          <option value="1000">1000</option>
+          <option value="5000">5000</option>
+          <option value="ALL">ALL (slow)</option>
+        </select>
       </div>
+
+      {/* Map */}
+      <MapContainer
+        center={[40.7128, -74.006]}
+        zoom={11}
+        style={{ height: "100%", width: "100%" }}
+      >
+        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+
+        {/* Borough Choropleth */}
+        {showChoropleth && boroughShapes && (
+          <GeoJSON
+            data={boroughShapes}
+            style={(feature) => {
+              const raw =
+              feature.properties.borough ||
+              feature.properties.boro_name ||
+              feature.properties.BoroName;
+
+              if (!raw) {
+                return {
+                  color: "#555",
+                  weight: 2,
+                  fillColor: "#ccc",
+                  fillOpacity: 0.2,
+                };
+              }
+
+              const name = raw.toUpperCase();
+              const count = boroughStats[name] ?? 0;
+
+              return {
+                fillColor: getColor(count),
+                color: "#2c0404ff",
+                weight: 2,
+                fillOpacity: 0.6,
+              };
+            }}
+            onEachFeature={(feature, layer) => {
+              const raw =
+                feature.properties.borough ||
+                feature.properties.boro_name ||
+                feature.properties.BoroName;
+
+              const name = raw ? raw.toUpperCase() : "UNKNOWN";
+              const count = boroughStats[name] ?? 0;
+
+              layer.bindPopup(`${name}: ${count} crimes`);
+            }}
+          />
+        )}
+        {showChoropleth && <ChoroplethLegend />}
+
+
+        {/* Heatmap */}
+        {showHeat && <HeatLayer points={heatPoints} />}
+
+        {/* Marker Clusters */}
+        {showCluster && (
+          <MarkerClusterGroup chunkedLoading>
+            {points.map((p, i) => (
+              <Marker key={i} position={[p.lat, p.lon]}>
+                <Popup>
+                  <b>Date:</b> {p.date}
+                  <br />
+                  <b>Crime:</b> {p.crimeType}
+                </Popup>
+              </Marker>
+            ))}
+          </MarkerClusterGroup>
+        )}
+      </MapContainer>
     </div>
   );
-};
+}
 
-export default App;
+function HeatLayer({ points }) {
+  const map = useMap();
+  useEffect(() => {
+    if (!points.length) return;
+
+    const layer = L.heatLayer(points, {
+      radius: 12,
+      blur: 15,
+      minOpacity: 0.6,
+    });
+    layer.addTo(map);
+    return () => map.removeLayer(layer);
+  }, [points]);
+  return null;
+}
+
+function ChoroplethLegend() {
+  const map = useMap();
+
+  useEffect(() => {
+    const legend = L.control({ position: "bottomright" });
+
+    legend.onAdd = function () {
+      const div = L.DomUtil.create("div", "info legend");
+      const grades = [100, 200, 400, 600, 800];
+      const colors = [
+        "#FEB24C",
+        "#FD8D3C",
+        "#FC4E2A",
+        "#E31A1C",
+        "#BD0026",
+        "#800026",
+      ];
+
+
+
+      return div;
+    };
+
+    legend.addTo(map);
+
+    return () => map.removeControl(legend);
+  }, [map]);
+
+  return null;
+}
+
+
+function getColor(count) {
+  return count > 20000
+    ? "#800026"
+    : count > 15000
+    ? "#BD0026"
+    : count > 10000
+    ? "#E31A1C"
+    : count > 5000
+    ? "#FC4E2A"
+    : count > 1000
+    ? "#FD8D3C"
+    : "#FEB24C";
+}

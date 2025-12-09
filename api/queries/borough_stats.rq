@@ -1,0 +1,18 @@
+PREFIX : <http://asu.edu/semantics/crime#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+SELECT ?borough (COUNT(*) AS ?count)
+WHERE {
+  ?e a :CrimeEvent ;
+     :occurrenceStart ?date ;
+     :occurredAt ?loc .
+
+  ?loc :inBorough ?bnode .
+  ?bnode :name ?borough .
+
+  ##YEAR_FILTER##
+  ##MONTH_FILTER##
+  ##CRIME_FILTER##
+}
+GROUP BY ?borough
+ORDER BY DESC(?count)

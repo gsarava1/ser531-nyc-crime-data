@@ -1,4 +1,4 @@
-PREFIX ny: <http://example.org/nycrime#>
+PREFIX : <http://asu.edu/semantics/crime#>
 
 SELECT (SUBSTR(STR(?dt),1,7) AS ?yearMonth) (COUNT(?e) AS ?count)
 WHERE {

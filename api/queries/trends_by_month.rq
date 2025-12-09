@@ -1,9 +1,0 @@
-PREFIX ny: <http://example.org/nycrime#>
-
-SELECT (SUBSTR(STR(?dt),1,7) AS ?yearMonth) (COUNT(?e) AS ?count)
-WHERE {
-  ?e a ny:CrimeEvent ;
-     ny:occurrenceDate ?dt .
-}
-GROUP BY (SUBSTR(STR(?dt),1,7))
-ORDER BY ?yearMonth

@@ -1,4 +1,4 @@
-PREFIX ny: <http://example.org/nycrime#>
+PREFIX ny: <http://asu.edu/semantics/crime#>
 
 SELECT ?id ?date ?lat ?lon ?borough
 WHERE {
@@ -8,6 +8,8 @@ WHERE {
      ny:occurredAt ?loc .
   ?loc ny:latitude ?lat ;
        ny:longitude ?lon .
+
+  ##BOROUGH_FILTER##
   OPTIONAL {
     ?loc ny:inBorough ?b .
     ?b ny:name ?borough .

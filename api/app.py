@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
-GRAPHDB_ENDPOINT = os.getenv("GRAPHDB_ENDPOINT", "http://localhost:7200/repositories/nycrime")
+GRAPHDB_ENDPOINT = os.getenv("GRAPHDB_ENDPOINT", "http://localhost:7200/repositories/nycrime_test")
 FLASK_PORT = int(os.getenv("FLASK_PORT", "8000"))
 
 app = Flask(__name__)
@@ -61,23 +61,14 @@ def crime_type():
 def events():
     
     borough = request.args.get("borough")
-    base_query = load_query("events_by_borough.rq")
+    query = load_query("events_by_borough.rq")
 
- 
-    if borough:
-        filter_clause = f"""
-        FILTER(LCASE(STR(?borough)) = LCASE("{borough}"))
-        """
-        
-        insert_point = "ORDER BY"
-        if insert_point in base_query:
-            parts = base_query.split(insert_point)
-            query = parts[0] + filter_clause + "\n" + insert_point + parts[1]
-        else:
-            query = base_query + "\n" + filter_clause
+    if borough and borough != "ALL":
+        query = query.replace("##BOROUGH_FILTER##",
+                      f'FILTER(STR(?borough) = "{borough}")')
     else:
-        query = base_query
-
+        query = query.replace("##BOROUGH_FILTER##", "")
+ 
     results = run_sparql(query)
     return jsonify(results)
 

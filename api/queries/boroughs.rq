@@ -1,4 +1,4 @@
-PREFIX ny: <http://example.org/nycrime#>
+PREFIX : <http://asu.edu/semantics/crime#>
 
 SELECT ?borough (COUNT(?e) AS ?count)
 WHERE {

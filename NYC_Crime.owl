@@ -9,7 +9,7 @@
 # Ontology
 #################################################################
 
-<http://example.org/nycrime>
+<http://asu.edu/semantics/crime#>
     a owl:Ontology ;
     rdfs:label "NY Crime Ontology (Simple)" ;
     rdfs:comment "Simplified ontology for representing NYPD Crime Data as a Knowledge Graph, aligned with Schema.org." .

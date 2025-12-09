@@ -1,0 +1,20 @@
+PREFIX ny: <http://asu.edu/semantics/crime#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+SELECT ?id ?date ?crimeType ?boroughName ?lat ?lon
+WHERE {
+  ?event a ny:CrimeEvent ;
+         ny:incidentId ?id ;
+         ny:crimeType ?crimeType ;
+         ny:reportDate ?date ;
+         ny:occurredAt ?loc .
+
+  ?loc ny:latitude ?lat ;
+       ny:longitude ?lon ;
+       ny:inBorough ?borough .
+
+  ?borough ny:name ?boroughName .
+}
+ORDER BY DESC(?date)
+LIMIT 200
+

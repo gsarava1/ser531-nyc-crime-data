@@ -85,7 +85,7 @@ def api_borough_stats():
     month = request.args.get("month")
     crime = request.args.get("crime")
 
-    q = load_query("events_by_borough.rq")
+    q = load_query("borough_stats.rq")
 
     if year:
         q = q.replace("##YEAR_FILTER##", f"FILTER(YEAR(?date) = {year})")

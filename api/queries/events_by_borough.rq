@@ -1,18 +1,17 @@
-PREFIX : <http://asu.edu/semantics/crime#>
-PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX ny: <http://asu.edu/semantics/crime#>
 
-SELECT ?borough (COUNT(*) AS ?count)
+SELECT ?id ?date ?lat ?lon ?borough
 WHERE {
-  ?e a :CrimeEvent ;
-     :occurrenceStart ?date ;
-     :occurredAt ?loc .
-
-  ?loc :inBorough ?bnode .
-  ?bnode :name ?borough .
-
-  ##YEAR_FILTER##
-  ##MONTH_FILTER##
-  ##CRIME_FILTER##
+  ?e a ny:CrimeEvent ;
+     ny:incidentId ?id ;
+     ny:occurrenceDate ?date ;
+     ny:occurredAt ?loc .
+  ?loc ny:latitude ?lat ;
+       ny:longitude ?lon .
+  OPTIONAL {
+    ?loc ny:inBorough ?b .
+    ?b ny:name ?borough .
+  }
 }
-GROUP BY ?borough
-ORDER BY DESC(?count)
+ORDER BY DESC(?date)
+LIMIT 500

@@ -1,0 +1,19 @@
+PREFIX : <http://asu.edu/semantics/crime#>
+
+SELECT
+  ?yearMonth
+  ?year
+  ?month
+  (COUNT(?event) AS ?count)
+WHERE {
+  ?event a :CrimeEvent ;
+         :occurrenceStart ?date .
+
+  BIND(YEAR(?date) AS ?year)
+  BIND(MONTH(?date) AS ?month)
+  BIND(CONCAT(STR(?year), "-", STR(?month)) AS ?yearMonth)
+
+  ##YEAR_FILTER##
+}
+GROUP BY ?yearMonth ?year ?month
+ORDER BY ?year ?month

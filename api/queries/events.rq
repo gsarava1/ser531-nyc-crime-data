@@ -1,0 +1,19 @@
+PREFIX : <http://asu.edu/semantics/crime#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+SELECT ?lat ?long ?date ?crimeType
+WHERE {
+  ?e a :CrimeEvent ;
+     :occurrenceStart ?date ;
+     :crimeType ?crimeType ;
+     :occurredAt ?loc .
+
+  ?loc a :CrimeLocation ;
+       :latitude ?lat ;
+       :longitude ?long .
+
+  ##YEAR_FILTER##
+  ##MONTH_FILTER##
+  ##CRIME_FILTER##
+}
+##LIMIT##

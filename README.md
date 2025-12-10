@@ -29,7 +29,7 @@ Before you begin, ensure you have installed:
 
 ### Step 1: Install GraphDB and Import Data
 
-1. **Download and install GraphDB** from the [official website](https://graphdb.onlineinsight.org/).
+1. **Download and install GraphDB**.
 2. **Start GraphDB** (usually runs on `http://localhost:7200`).
 3. **Create a new repository** named `nycrime`:
    - Open GraphDB Web UI: http://localhost:7200

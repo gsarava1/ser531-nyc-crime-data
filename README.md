@@ -21,7 +21,15 @@ Before you begin, ensure you have installed:
 
 ---
 
+## Get the code
 
+Clone the repository (HTTPS):
+
+```powershell
+# Clone the project repository
+git clone https://github.com/gsarava1/ser531-nyc-crime-data.git
+cd ser531-nyc-crime-data
+```
 
 
 

@@ -16,7 +16,7 @@ Before you begin, ensure you have installed:
 
 1. **Python 3.8+** ([Download](https://www.python.org/downloads/))
 2. **Node.js 16+** ([Download](https://nodejs.org/))
-3. **GraphDB** ([Download Community Edition](https://graphdb.onlineinsight.org/))
+3. **GraphDB** 
    - The application expects GraphDB running on `http://localhost:7200`
 
 ---
